@@ -18,12 +18,20 @@ public class UserInput : MonoBehaviour
     private void Awake()
     {
         PlayerInput = GetComponent<PlayerInput>();
-
-        _interactAction = PlayerInput.actions["Interact"];
     }
-    void Start()
+
+    private void Start()
     {
-        
+        // Ensure PlayerInput and actions are ready here
+        if (PlayerInput != null)
+        {
+            _moveAction = PlayerInput.actions["Move"];
+            _interactAction = PlayerInput.actions["Interact"];
+        }
+        else
+        {
+            Debug.LogError("PlayerInput component not found!");
+        }
     }
 
     // Update is called once per frame

@@ -13,7 +13,8 @@ public class SceneSwapManager : MonoBehaviour
         if (instance == null)
         {
             instance = this;
-            DontDestroyOnLoad(gameObject); // Ensure manager persists across scenes
+            transform.SetParent(null); // <-- Detach from parent before persisting
+            DontDestroyOnLoad(gameObject);
         }
         else
         {

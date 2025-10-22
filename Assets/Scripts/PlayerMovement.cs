@@ -1,91 +1,94 @@
 ﻿using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     public InputSystem_Actions actions;
-    [SerializeField] float moveSpeed = 400f;
-     Rigidbody2D rb;
+    [SerializeField] private float moveSpeed = 400f;
+    private Rigidbody2D rb;
     private Vector2 moveInput;
-    public static PlayerMovement Instance;
-    float move;
 
     private Animator animator;
     private SpriteRenderer spriteRenderer;
     private bool isInteracting = false;
 
+    public static PlayerMovement Instance;
 
-    void Awake()
+    private void Awake()
     {
-        // Singleton fix — only one Input System instance
+        // Singleton pattern — ensure only one persistent player
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
-      
-        actions = new InputSystem_Actions();
+        transform.SetParent(null);          // detach from any parent
+        DontDestroyOnLoad(gameObject);      // persist across scenes
+
+        // Initialize input system
+        if (actions == null)
+            actions = new InputSystem_Actions();
     }
-        void Start()
+
+    private void Start()
     {
-       rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
+        if (rb == null) Debug.LogError("[PlayerMovement] Rigidbody2D missing!");
+
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
 
-        // Bind inputs
+        // Enable and bind input actions
         actions.Player.Enable();
         actions.Player.Move.performed += Movement;
         actions.Player.Move.canceled += Movement;
-
-        // Bind Interact (E or Left Click)
         actions.Player.Interact.performed += OnInteract;
     }
-    void OnInteract(InputAction.CallbackContext ctx)
+
+    private void OnInteract(InputAction.CallbackContext ctx)
     {
         if (!isInteracting)
             StartCoroutine(PlayInteractAnimation());
     }
-    IEnumerator PlayInteractAnimation()
+
+    private IEnumerator PlayInteractAnimation()
     {
         isInteracting = true;
         animator.SetTrigger("Interact");
-        yield return new WaitForSeconds(0.5f); // adjust based on animation length
+        yield return new WaitForSeconds(0.5f); // adjust to your animation length
         isInteracting = false;
     }
 
-    public void Movement(InputAction.CallbackContext ctx)
+    private void Movement(InputAction.CallbackContext ctx)
     {
         moveInput = ctx.ReadValue<Vector2>();
     }
 
-
-    // Update is called once per frame
-    void Update()
-
+    private void Update()
     {
-        rb.linearVelocity = moveInput * moveSpeed;
+        // Move player using Rigidbody2D
+        if (rb != null)
+            rb.linearVelocity = moveInput * moveSpeed * Time.deltaTime;
 
+        // Animate movement
         bool isMoving = moveInput.magnitude > 0.01f;
         animator.SetBool("isMoving", isMoving);
 
-        // 🟢 Flip and face direction
+        // Flip sprite horizontally based on movement
         if (moveInput.x > 0.01f)
             spriteRenderer.flipX = false;
         else if (moveInput.x < -0.01f)
             spriteRenderer.flipX = true;
-
-        
     }
-
+    private void OnDestroy()
+    {
+        if (actions != null)
+        {
+            actions.Player.Disable();
+            actions.UI.Disable(); // if you use a UI action map
+        }
+    }
 }
-
-
-
-  
-
