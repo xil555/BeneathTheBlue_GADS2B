@@ -18,6 +18,8 @@ public class UserInput : MonoBehaviour
     private void Awake()
     {
         PlayerInput = GetComponent<PlayerInput>();
+
+        _interactAction = PlayerInput.actions["Interact"];
     }
 
     private void Start()
@@ -53,6 +55,8 @@ public class UserInput : MonoBehaviour
 
     private void Update()
     {
+        MoveInput = _moveAction.ReadValue<Vector2>();
+        WasInteractPressed = _interactAction.WasPressedThisFrame();
 
         if (_moveAction != null)
             MoveInput = _moveAction.ReadValue<Vector2>();
