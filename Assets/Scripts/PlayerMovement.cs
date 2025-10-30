@@ -4,11 +4,11 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public InputSystem_Actions actions;
-    [SerializeField] private float moveSpeed = 400f;
+   public InputSystem_Actions actions;
+    [SerializeField] private float moveSpeed = 5f;
+
     private Rigidbody2D rb;
     private Vector2 moveInput;
-
     private Animator animator;
     private SpriteRenderer spriteRenderer;
     private bool isInteracting = false;
@@ -23,10 +23,10 @@ public class PlayerMovement : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        Instance = this;
 
-        transform.SetParent(null);          // detach from any parent
-        DontDestroyOnLoad(gameObject);      // persist across scenes
+        Instance = this;
+        transform.SetParent(null);
+        DontDestroyOnLoad(gameObject);
 
         // Initialize input system
         if (actions == null)
@@ -48,8 +48,9 @@ public class PlayerMovement : MonoBehaviour
         actions.Player.Interact.performed += OnInteract;
     }
 
-    private void OnInteract(InputAction.CallbackContext ctx)
+    public void OnInteract(InputAction.CallbackContext ctx)
     {
+        // Prevent spamming the animation
         if (!isInteracting)
             StartCoroutine(PlayInteractAnimation());
     }
@@ -57,38 +58,49 @@ public class PlayerMovement : MonoBehaviour
     private IEnumerator PlayInteractAnimation()
     {
         isInteracting = true;
+
+        // Stop movement while interacting (optional)
+        moveInput = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
+
         animator.SetTrigger("Interact");
-        yield return new WaitForSeconds(0.5f); // adjust to your animation length
+
+        // Adjust the delay to your animation’s actual length
+        yield return new WaitForSeconds(0.7f);
+
         isInteracting = false;
     }
 
-    private void Movement(InputAction.CallbackContext ctx)
+    public void Movement(InputAction.CallbackContext ctx)
     {
         moveInput = ctx.ReadValue<Vector2>();
     }
 
     private void Update()
     {
+        if (rb == null || isInteracting)
+            return;
+
         // Move player using Rigidbody2D
-        if (rb != null)
-            rb.linearVelocity = moveInput * moveSpeed * Time.deltaTime;
+        rb.linearVelocity = moveInput * moveSpeed;
 
         // Animate movement
         bool isMoving = moveInput.magnitude > 0.01f;
         animator.SetBool("isMoving", isMoving);
 
-        // Flip sprite horizontally based on movement
+        // Flip sprite horizontally
         if (moveInput.x > 0.01f)
             spriteRenderer.flipX = false;
         else if (moveInput.x < -0.01f)
             spriteRenderer.flipX = true;
     }
+
     private void OnDestroy()
     {
         if (actions != null)
         {
             actions.Player.Disable();
-            actions.UI.Disable(); // if you use a UI action map
+            actions.UI.Disable(); // if you use UI map
         }
     }
 }
