@@ -13,15 +13,12 @@ public class SceneSwapManager : MonoBehaviour
         if (instance == null)
         {
             instance = this;
-            transform.SetParent(null); // <-- Detach from parent before persisting
             DontDestroyOnLoad(gameObject);
         }
         else
         {
             Destroy(gameObject);
         }
-
-        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDestroy()

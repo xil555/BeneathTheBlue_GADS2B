@@ -1,71 +1,80 @@
 using UnityEngine;
-using System.Collections.Generic;
 using UnityEngine.InputSystem;
 
 public class UserInput : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-
     public static PlayerInput PlayerInput;
-      private Vector2 moveInput;
-    public static Vector2 MoveInput;
-
-    public static bool WasInteractPressed;
 
     private InputAction _moveAction;
     private InputAction _interactAction;
 
-    private void Awake()
-    {
-        PlayerInput = GetComponent<PlayerInput>();
+    public static Vector2 MoveInput;
+    public static bool WasInteractPressed;
 
-        _interactAction = PlayerInput.actions["Interact"];
+    [Header("Attack Settings")]
+    public float attackRange = 1.5f;
+    public float attackCooldown = 1f;
+    private float lastAttackTime = 0f;
+
+    private void OnEnable()
+    {
+        if (PlayerInput == null)
+            PlayerInput = GetComponent<PlayerInput>();
+        PlayerInput.actions.Enable();
     }
 
     private void Start()
     {
-        // Ensure PlayerInput and actions are ready here
-        if (PlayerInput != null)
-        {
-            _moveAction = PlayerInput.actions["Move"];
-            _interactAction = PlayerInput.actions["Interact"];
-        }
-        else
-        {
-            Debug.LogError("PlayerInput component not found!");
-        }
-    }
-
-    // Update is called once per frame
-    /*void Update()
-    {
-        MoveInput = _moveAction.ReadValue<Vector2>();
-        WasInteractPressed = _interactAction.WasPressedThisFrame();
-    }
-    */
-    public void Interact(InputAction.CallbackContext ctx)
-    {
-        // Don't read a Vector2 here — just check if the button was pressed
-        if (ctx.performed)
-        {
-            WasInteractPressed = true;
-            Debug.Log("Interact pressed!");
-        }
+        PlayerInput = GetComponent<PlayerInput>();
+        _moveAction = PlayerInput.actions.FindAction("Move");
+        _interactAction = PlayerInput.actions.FindAction("Interact");
     }
 
     private void Update()
     {
-        MoveInput = _moveAction.ReadValue<Vector2>();
-        WasInteractPressed = _interactAction.WasPressedThisFrame();
-
         if (_moveAction != null)
             MoveInput = _moveAction.ReadValue<Vector2>();
         else
             MoveInput = Vector2.zero;
 
-        if (WasInteractPressed)
+        if (_interactAction != null)
+            WasInteractPressed = _interactAction.WasPressedThisFrame();
+        else
             WasInteractPressed = false;
+
+        // Attack with cooldown
+        if (WasInteractPressed && Time.time - lastAttackTime >= attackCooldown)
+        {
+            Attack();
+            lastAttackTime = Time.time;
+        }
+    }
+
+    private void Attack()
+    {
+        // hit objects tagged "Bottle"
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, attackRange);
+        foreach (Collider2D hit in hits)
+        {
+            if (hit.CompareTag("Bottle"))
+            {
+                DestructibleObject obj = hit.GetComponent<DestructibleObject>();
+                if (obj != null)
+                    obj.Hit();
+            }
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (PlayerInput != null)
+            PlayerInput.actions.Disable(); // disable action maps to prevent leaks
+    }
+
+    // Remove OnDestroy() entirely or leave empty
+    private void OnDestroy()
+    {
+        // nothing needed here
     }
 }
-
 
