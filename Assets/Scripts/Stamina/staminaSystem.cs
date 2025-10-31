@@ -22,6 +22,7 @@ public class staminaSystem : MonoBehaviour
     public float currentStamina;
 
     private bool isDead = false; // prevents multiple scene loads
+    private bool staminaActive = false; // true only in Top Zone 1 & 2
 
     void Awake()
     {
@@ -29,6 +30,7 @@ public class staminaSystem : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else
         {
@@ -42,11 +44,32 @@ public class staminaSystem : MonoBehaviour
             currentStamina = maxStamina;
 
         UpdateBar();
+        CheckScene(SceneManager.GetActiveScene().name);
     }
 
     void Update()
     {
-        DrainStamina();
+        if (staminaActive)
+            DrainStamina();
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        CheckScene(scene.name);
+    }
+
+    void CheckScene(string sceneName)
+    {
+        // Enable stamina system only in Top Zone 1 and 2
+        if (sceneName == "Top Zone 1" || sceneName == "Top Zone 2")
+        {
+            staminaActive = true;
+            isDead = false; // reset for new scene
+        }
+        else
+        {
+            staminaActive = false;
+        }
     }
 
     void DrainStamina()
@@ -57,7 +80,6 @@ public class staminaSystem : MonoBehaviour
             currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
             UpdateBar();
 
-            // Check if stamina is empty
             if (currentStamina <= 0 && !isDead)
             {
                 isDead = true;
@@ -81,6 +103,8 @@ public class staminaSystem : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (!staminaActive) return;
+
         if (other.CompareTag("StaminaPickup"))
         {
             AddStamina(regenAmount);
@@ -98,7 +122,8 @@ public class staminaSystem : MonoBehaviour
 
     private IEnumerator LoadLoseScreen()
     {
-        yield return new WaitForSeconds(0.5f); // small delay before switching scenes
-        SceneManager.LoadScene("Lose Screen"); // ? Make sure this name matches your scene name exactly
+        yield return new WaitForSeconds(0.5f);
+        SceneManager.LoadScene("Lose Screen");
     }
+
 }

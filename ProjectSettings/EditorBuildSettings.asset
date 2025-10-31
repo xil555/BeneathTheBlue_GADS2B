@@ -32,6 +32,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Levels/Guide.unity
     guid: 1144006d9256ff94cacc4d8e4d8a85e8
+  - enabled: 1
+    path: Assets/Levels/Win Scene.unity
+    guid: 4b3fed2dd62cc60488e42b74c8d81c92
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: d24ebc594267ca54a827630aced16640, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 4dd1e27d982cde145a33c7ddcadef872, type: 3}

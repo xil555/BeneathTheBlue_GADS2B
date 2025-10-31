@@ -2,20 +2,21 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem; //  Use new Input System
 
 
 public class FishScenario : MonoBehaviour
 {
-
     [Header("Challenge Settings")]
-    public int requiredPresses = 10;        // How many times player must press E
-    public float timeLimit = 5f;            // Seconds to complete challenge
-    public float interactionRange = 3f;     // Distance needed to start challenge
+    public int requiredPresses = 10;
+    public float timeLimit = 5f;
+    public float interactionRange = 3f;
 
     [Header("UI Elements")]
-    public Slider progressBar;              // Slider showing progress
-    public TextMeshProUGUI timerText;       // Timer text display
-    public Image textBubble;                // Dialogue bubble image
+    public Slider progressBar;
+    public TextMeshProUGUI timerText;
+    public Image textBubble;
+    public TextMeshProUGUI dialogueTMP;
 
     [Header("Particles & Audio")]
     public ParticleSystem successParticles;
@@ -27,14 +28,15 @@ public class FishScenario : MonoBehaviour
     [Header("Dialogue")]
     [TextArea]
     public string dialogueText = "Please help me! I'm stuck in this bag!";
-    public TextMeshProUGUI dialogueTMP;     // Text component for dialogue
 
     private int currentPresses = 0;
     private bool challengeActive = false;
     private float remainingTime;
     private bool completed = false;
-
     private GameObject player;
+
+    // ? Input System reference
+    private InputAction interactAction;
 
     void Start()
     {
@@ -46,44 +48,55 @@ public class FishScenario : MonoBehaviour
         timerText.gameObject.SetActive(false);
         textBubble.gameObject.SetActive(false);
         dialogueTMP.gameObject.SetActive(false);
+
+        // ? Setup Input System
+        if (player != null)
+        {
+            var playerInput = player.GetComponent<PlayerInput>();
+            if (playerInput != null)
+                interactAction = playerInput.actions["Interact"]; // use your "Interact" action name
+        }
+    }
+
+    void OnEnable()
+    {
+        if (interactAction != null)
+            interactAction.performed += OnInteract;
+    }
+
+    void OnDisable()
+    {
+        if (interactAction != null)
+            interactAction.performed -= OnInteract;
     }
 
     void Update()
     {
-        if (completed) return;
-        if (player == null) return;
+        if (completed || player == null) return;
 
         float distance = Vector3.Distance(player.transform.position, transform.position);
 
-        // Start challenge when player gets close enough
         if (!challengeActive && distance <= interactionRange)
-        {
             StartChallenge();
-        }
 
         if (!challengeActive) return;
 
-        // Countdown logic
         remainingTime -= Time.deltaTime;
         timerText.text = Mathf.Ceil(remainingTime).ToString() + "s";
 
-        // Player pressing E
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            currentPresses++;
-            progressBar.value = (float)currentPresses / requiredPresses;
-
-            if (currentPresses >= requiredPresses)
-            {
-                CompleteChallenge(true);
-            }
-        }
-
-        // Fail condition
         if (remainingTime <= 0)
-        {
             CompleteChallenge(false);
-        }
+    }
+
+    private void OnInteract(InputAction.CallbackContext ctx)
+    {
+        if (!challengeActive) return;
+
+        currentPresses++;
+        progressBar.value = (float)currentPresses / requiredPresses;
+
+        if (currentPresses >= requiredPresses)
+            CompleteChallenge(true);
     }
 
     public void StartChallenge()
@@ -93,7 +106,6 @@ public class FishScenario : MonoBehaviour
         remainingTime = timeLimit;
         currentPresses = 0;
 
-        // Show UI
         progressBar.value = 0;
         progressBar.gameObject.SetActive(true);
         timerText.gameObject.SetActive(true);
@@ -108,13 +120,11 @@ public class FishScenario : MonoBehaviour
         completed = true;
         challengeActive = false;
 
-        // Hide UI
         progressBar.gameObject.SetActive(false);
         timerText.gameObject.SetActive(false);
         textBubble.gameObject.SetActive(false);
         dialogueTMP.gameObject.SetActive(false);
 
-        // Play effects
         if (success)
         {
             if (successParticles != null) successParticles.Play();
@@ -126,7 +136,6 @@ public class FishScenario : MonoBehaviour
             if (audioSource != null && failSound != null) audioSource.PlayOneShot(failSound);
         }
 
-        // Destroy after short delay (2s for animation/sound)
         StartCoroutine(RemoveAfterDelay());
     }
 
@@ -136,6 +145,5 @@ public class FishScenario : MonoBehaviour
         Destroy(gameObject);
     }
 
-    // Optional: expose completion state for ScenarioManager
     public bool IsCompleted => completed;
 }
